@@ -1,29 +1,22 @@
-# import cv2
-# import matplotlib.pyplot as plt
-# img = cv2.imread("Phase1/BSDS500/Images/1.jpg", cv2.IMREAD_GRAYSCALE)
-
-# (thresh, img) = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-# plt.imshow(img,cmap='gray')
-# plt.show()
-
-# cv2.imshow("Image",img)
-# cv2.waitKey(0) & 0xFF 
-# cv2.destroyAllwindows()
-import math
 import numpy as np
-import cv2
-def gaussian_kernel(scale,size):
-    """Generating a gaussian filter of a given size and standard deviation
-    Implemented as given in the below paper :
-    https://pages.stat.wisc.edu/~mchung/teaching/MIA/reading/diffusion.gaussian.kernel.pdf.pdf"""
-    pi = math.pi
-    arr_x = [(i-size//2) for i in range(size)]
-    arr_y = [(i-size//2) for i in range(size)]
-    G2D = lambda x,y,std: (1/(2*pi*(std**2))) * math.exp(-((x**2)+(y**2))/(2*(std**2)))
+def half_disk(radius):
+    a=np.ones((2*radius+1,2*radius+1))
+    y,x = np.ogrid[-radius:radius+1,-radius:radius+1]
+    mask2 = x*x + y*y <= radius**2
+    a[mask2] = 0
+    b=np.ones((2*radius+1,2*radius+1))
+    y,x = np.ogrid[-radius:radius+1,-radius:radius+1]
+    p = x>-1
+    q = y>-radius-1
+    mask3 = p*q
+    b[mask3] = 0
 
-    gaussian_arr = np.asarray([G2D(x,y,scale) for x in arr_x for y in arr_y])
-    return gaussian_arr.reshape(size,size)
+    return p,q
 
-print(gaussian_kernel(1,5))
 
-cv2.GaussianBlur()
+# print(half_disk(2))
+
+temp_array = np.full((5, 6), np.spacing(np.single(1)), dtype=np.float32)
+
+print(temp_array)
+
