@@ -32,6 +32,9 @@ class AutoCalib:
         vec = np.transpose(vec)
         b11, b12, b22, b13, b23, b33 = vec[np.argmin(eig)]
 
+        # u,s,vh = np.linalg.svd(np.array(V)) # See https://numpy.org/doc/stable/reference/generated/numpy.linalg.svd.html
+        # b11, b12, b22, b13, b23, b33 = vh[np.argmin(s)]
+
         v0 = (b12*b13 - b11*b23)/(b11*b22 - b12**2)
         Lambda = b33 - (b13**2 + v0*(b12*b13 - b11*b23))/b11
         alpha = np.sqrt(Lambda/b11)
@@ -53,28 +56,6 @@ class AutoCalib:
         r3 = np.cross(r1,r2)
         t = Lambda*K_inv.dot(h3)
         return np.stack((r1,r2,r3,t), axis=1)
-
-    def geometricError(self,parameters, imgpoints, objpoints, Extrinsics_initial):
-
-        alpha, beta, gamma, u0, v0, k1, k2 = parameters
-        K =np.array([[alpha, gamma, u0],
-                    [0,     beta,  v0],
-                    [0,     0,      1]])
-
-        error = []
-        for i,RT in enumerate(Extrinsics_initial):    
-            r1,r2,r3,t = np.transpose(RT)
-            R = np.stack((r1,r2,r3), axis=1)
-            t = t.reshape(-1,1)
-            obj_i,img_i = objpoints[i], imgpoints[i] 
-            img_i = np.column_stack((img_i[0],np.ones(len(img_i[0])).reshape(-1,1))) 
-            img_i = np.array([img_i],dtype = np.float64)
-            img_i, _ = cv2.projectPoints(img_i, R, t, K, (k1,k2,0,0)) 
-            err = [] 
-            for xi,yi in  zip(obj_i, img_i.squeeze()):
-                err.append(np.linalg.norm(xi-yi, ord=2)) 
-            error = np.hstack((error,np.sum(err)))
-        return error
 
 def main():
     """Initial parts of this script os based on : 
@@ -116,9 +97,8 @@ def main():
             img = cv2.drawChessboardCorners(img, CHECKERBOARD, corners2, ret)
         cv2.imshow('img',img)
         cv2.waitKey(0)
-        out_file = "Output/"+fname.split("/")[1]
-        cv2.imwrite(out_file,img)
     cv2.destroyAllWindows()
+    # print(objpoints)
 
     """
     Performing camera calibration by passing the value of known 3D points (objpoints)
@@ -134,32 +114,8 @@ def main():
         RT = calib.extrinsicParameters(K_initial,H)
         Extrinsics_initial.append(RT) 
     
-    # Now we need to solve the optimization problem to minimize the error 
-    alpha = K_initial[0][0]
-    beta = K_initial[1][1]
-    u0 = K_initial[0][2]
-    v0 = K_initial[1][2]
-    k1,k2 = calib.k.ravel()
-    gamma = K_initial[0][1]
 
-    initial_parameters = [alpha, beta, gamma, u0, v0, k1, k2]
 
-    initial_error = calib.geometricError(initial_parameters,imgpoints,objpoints, Extrinsics_initial)
-    print("Initial Errors " , initial_error) # This is initial error . The goal is to reduce this . We get separate error for each image 
-    optimal_parameters = least_squares(fun = calib.geometricError, x0 = initial_parameters, method="lm", args = [imgpoints,objpoints, Extrinsics_initial])
 
-    #Now parameters are optimized  . Now finding the new intrinsic and extrinsic parameters 
-    alpha, beta, gamma, u0, v0, k1, k2 = optimal_parameters.x 
-    final_parameters = [alpha, beta, gamma, u0, v0, k1, k2]
-    K_new = np.array([[alpha, gamma, u0],
-                    [0,     beta,  v0],
-                    [0,     0,      1]])
-    print("Final intrinsic parameters \n", K_new)
-
-    Extrinsics_new= []
-    for i, H in enumerate(Homography_matrices):
-        RT = calib.extrinsicParameters(K_new,H)
-        Extrinsics_new.append(RT) 
-    
 if __name__ == "__main__":
     main()
