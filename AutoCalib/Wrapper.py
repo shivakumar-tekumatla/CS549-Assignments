@@ -54,7 +54,7 @@ class AutoCalib:
         t = Lambda*K_inv.dot(h3)
         return np.stack((r1,r2,r3,t), axis=1)
 
-    def geometricError(self,parameters, imgpoints, objpoints, Extrinsics_initial):
+    def geometricError(self,parameters, imgpoints, objpoints, Extrinsics):
 
         alpha, beta, gamma, u0, v0, k1, k2 = parameters
         K =np.array([[alpha, gamma, u0],
@@ -62,7 +62,7 @@ class AutoCalib:
                     [0,     0,      1]])
 
         error = []
-        for i,RT in enumerate(Extrinsics_initial):    
+        for i,RT in enumerate(Extrinsics):    
             r1,r2,r3,t = np.transpose(RT)
             R = np.stack((r1,r2,r3), axis=1)
             t = t.reshape(-1,1)
